@@ -4,12 +4,12 @@ import { SCHEMA_VERSION } from '../core/store.js';
 // e, no futuro, pode vir do backend.
 //
 // Cada SEGMENTO (mobilidade urbana, entregas) tem sua própria trilha.
-// Trilha = mundos (stages) → fases (missions). Fases são concluídas por
+// Trilha = cidades (stages) → fases (missions). Fases são concluídas por
 // EVENTOS (`trigger`): o painel Machine só precisa chamar
 // JourneyGame.track('despacho_configurado') — a regra fica aqui.
 export const DEFAULT_CONFIG = {
   name: 'Jornada da Central',
-  sequential: true, // mundos desbloqueiam em ordem
+  sequential: true, // cidades desbloqueiam em ordem
   sequentialMissions: true, // fases desbloqueiam em ordem, como no Candy Crush
   levels: {
     base: 100, // XP para chegar ao nível 2
@@ -29,10 +29,11 @@ export const DEFAULT_CONFIG = {
       available: true,
       // Eventos aplicados ao criar a central: ela já entra no jogo pelo painel.
       startEvents: ['painel_acessado'],
-      comingSoon: 'Primeiras corridas',
+      comingSoon: { city: 'Porto Corrida', name: 'Primeiras corridas' },
       stages: [
         {
           id: 'mob_mundo1',
+          city: 'Vila Ignição', // onde a central dá a partida
           name: 'Preparando a central',
           icon: '🛠️',
           color: '#307fff',
@@ -45,11 +46,12 @@ export const DEFAULT_CONFIG = {
             { id: 'mob_tarifas', title: 'Configurar tarifas e categorias', short: 'Tarifas', icon: '🏷️', description: 'Cadastre as categorias de veículo e as tarifas de cada uma.', trigger: 'tarifas_categorias_configuradas', target: 1, xp: 80, coins: 15 },
             { id: 'mob_taxas', title: 'Configurar as taxas da central', short: 'Taxas', icon: '💲', description: 'Defina as taxas que a central cobra sobre as corridas.', trigger: 'taxas_central_configuradas', target: 1, xp: 80, coins: 15 },
             { id: 'mob_despacho', title: 'Configurar o despacho', short: 'Despacho', icon: '📡', description: 'Defina como as corridas são distribuídas entre os motoristas.', trigger: 'despacho_configurado', target: 1, xp: 100, coins: 20 },
-            { id: 'mob_integracao', title: 'Realizar a integração financeira', short: 'Integração financeira', icon: '🏦', boss: true, description: 'O chefão do mundo 1: conclua a integração financeira da central.', trigger: 'integracao_financeira_concluida', target: 1, xp: 300, coins: 60 },
+            { id: 'mob_integracao', title: 'Realizar a integração financeira', short: 'Integração financeira', icon: '🏦', boss: true, description: 'O chefão de Vila Ignição: conclua a integração financeira da central.', trigger: 'integracao_financeira_concluida', target: 1, xp: 300, coins: 60 },
           ],
         },
         {
           id: 'mob_mundo2',
+          city: 'Frotópolis', // onde a frota se forma
           name: 'Montando a frota',
           icon: '🚗',
           color: '#f4a500',
@@ -78,10 +80,10 @@ export const DEFAULT_CONFIG = {
     { id: 'b_boas_vindas', name: 'Boas-vindas', icon: '👋', description: 'Entre no painel da sua central.', rule: { type: 'missions_completed', value: 1 }, xp: 10 },
     { id: 'b_olivia', name: 'Papo com a Olivia', icon: '💬', description: 'Abra seu primeiro chamado com a Olivia.', rule: { type: 'event_count', event: 'chamado_olivia_aberto', value: 1 }, xp: 20 },
     { id: 'b_preco', name: 'Preço certo', icon: '🏷️', description: 'Configure tarifas e categorias.', rule: { type: 'event_count', event: 'tarifas_categorias_configuradas', value: 1 }, xp: 20 },
-    { id: 'b_chefao', name: 'Chefão derrotado', icon: '🏆', description: 'Conclua a integração financeira e vença o mundo 1.', rule: { type: 'stage_completed', stageId: 'mob_mundo1' }, xp: 50 },
+    { id: 'b_chefao', name: 'Chefão derrotado', icon: '🏆', description: 'Conclua a integração financeira e vença o chefão de Vila Ignição.', rule: { type: 'stage_completed', stageId: 'mob_mundo1' }, xp: 50 },
     { id: 'b_motorista', name: 'Primeiro motorista', icon: '🚗', description: 'Aprove o primeiro cadastro de motorista.', rule: { type: 'event_count', event: 'cadastro_motorista_aprovado', value: 1 }, xp: 30 },
     { id: 'b_nivel5', name: 'Central em alta', icon: '🚀', description: 'Alcance o nível 5.', rule: { type: 'level', value: 5 }, xp: 50 },
-    { id: 'b_completa', name: 'Trilha completa', icon: '👑', description: 'Conclua todos os mundos disponíveis.', rule: { type: 'all_stages' }, xp: 100 },
+    { id: 'b_completa', name: 'Trilha completa', icon: '👑', description: 'Conclua todas as cidades disponíveis.', rule: { type: 'all_stages' }, xp: 100 },
   ],
   // Recompensas provisórias: ajustar com o time comercial/CS.
   rewards: [

@@ -1,5 +1,5 @@
 // Motor de gamificação: recebe eventos da central e aplica as regras da
-// configuração (fases, mundos, níveis, conquistas, moedas).
+// configuração (fases, cidades, níveis, conquistas, moedas).
 // Não conhece a interface — comunica resultados pelo barramento de eventos.
 const HISTORY_LIMIT = 100;
 
@@ -132,7 +132,7 @@ export function createEngine({ store, bus }) {
         });
         if (isStageUnlocked(player, si) && !player.completedStages[stage.id] && stage.missions.length && isStageComplete(player, stage)) {
           player.completedStages[stage.id] = Date.now();
-          grant(player, stage.bonusXp, stage.bonusCoins, `Mundo concluído: ${stage.name}`, effects);
+          grant(player, stage.bonusXp, stage.bonusCoins, `Cidade concluída: ${stage.city || stage.name}`, effects);
           effects.push({ type: 'stage:completed', stage });
           changed = true;
         }

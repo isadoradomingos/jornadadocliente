@@ -17,7 +17,7 @@ function validateConfig(config) {
   for (const seg of config.segments) {
     if (!seg.id || !seg.name || !Array.isArray(seg.stages)) throw new Error(`Segmento inválido: ${seg.id || '(sem id)'} — precisa de id, name e stages.`);
     for (const stage of seg.stages) {
-      if (!stage.id || !stage.name || !Array.isArray(stage.missions)) throw new Error(`Mundo inválido: ${stage.id || '(sem id)'} — precisa de id, name e missions.`);
+      if (!stage.id || !stage.name || !Array.isArray(stage.missions)) throw new Error(`Cidade inválida: ${stage.id || '(sem id)'} — precisa de id, name e missions.`);
       for (const m of stage.missions) {
         if (!m.id || !m.title || !m.trigger || typeof m.xp !== 'number') throw new Error(`Fase inválida em "${stage.id}": precisa de id, title, trigger e xp numérico.`);
         if (ids.has(m.id)) throw new Error(`id de fase repetido: ${m.id}`);
@@ -69,7 +69,7 @@ export function render({ store }) {
 
       <section class="card span-2">
         <h2 class="card-title">Configuração da jornada</h2>
-        <p class="hint">Segmentos → mundos (stages) → fases (missions; <code>trigger</code> = nome do evento, <code>boss: true</code> = chefão). Também níveis, conquistas e recompensas. Ao salvar, o progresso de todas as centrais é recalculado.</p>
+        <p class="hint">Segmentos → cidades (stages; <code>city</code> = nome da cidade) → fases (missions; <code>trigger</code> = nome do evento, <code>boss: true</code> = chefão). Também níveis, conquistas e recompensas. Ao salvar, o progresso de todas as centrais é recalculado.</p>
         <textarea id="config-json" class="code-area" spellcheck="false" aria-label="Configuração em JSON">${esc(JSON.stringify(config, null, 2))}</textarea>
         <p id="config-error" class="error" role="alert" hidden></p>
         <div class="button-row">

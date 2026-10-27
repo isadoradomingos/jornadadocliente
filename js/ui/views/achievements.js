@@ -23,7 +23,7 @@ export function render({ store, engine }) {
     <div class="stats-row">
       <div class="card stat-card"><span class="stat-big">${fmt(player.xp)}</span><span>XP total</span></div>
       <div class="card stat-card"><span class="stat-big">${summary.doneMissions}/${summary.totalMissions}</span><span>fases</span></div>
-      <div class="card stat-card"><span class="stat-big">${summary.stagesDone}/${summary.totalStages}</span><span>mundos</span></div>
+      <div class="card stat-card"><span class="stat-big">${summary.stagesDone}/${summary.totalStages}</span><span>cidades</span></div>
       <div class="card stat-card"><span class="stat-big">${earned}/${config.badges.length}</span><span>conquistas</span></div>
     </div>
     <h2 class="section-title">Conquistas</h2>

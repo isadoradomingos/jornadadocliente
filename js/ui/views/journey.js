@@ -1,12 +1,12 @@
 import { esc, fmt, activityList } from '../dom.js';
 
 // Mapa estilo Candy Crush: estrada sinuosa de cima para baixo (acompanha a
-// rolagem da página), uma fase por parada, mundos como faixas de cenário e
+// rolagem da página), uma fase por parada, cidades como faixas de cenário e
 // um carro marcando a fase atual.
 const W = 420; // largura de referência do mapa (o SVG escala com a tela)
 const STEP = 124; // distância vertical entre fases
 const BOSS_STEP = 150;
-const BANNER = 150; // espaço para a faixa do mundo
+const BANNER = 150; // espaço para a placa da cidade
 const TEASER = 190; // "em breve" no fim da trilha
 const PAD = 56;
 const DECOR = ['🏢', '🌳', '🏬', '🚦', '🏠', '🌳', '🅿️', '⛽', '🏦', '🚏'];
@@ -85,7 +85,7 @@ function renderMap({ engine }, player, segment) {
         </div>
         <div class="world-banner ${unlocked ? '' : 'is-locked'}" style="top:${pct(w.top + 62, height)};--c:${esc(w.stage.color)}">
           <span class="world-banner-icon">${unlocked ? esc(w.stage.icon) : '🔒'}</span>
-          <span><small>Mundo ${w.si + 1}${done ? ' · concluído' : ''}</small>${esc(w.stage.name)}</span>
+          <span><small>Cidade ${w.si + 1} · ${done ? 'concluída' : esc(w.stage.name)}</small>${esc(w.stage.city || w.stage.name)}</span>
         </div>`;
     })
     .join('');
@@ -117,7 +117,7 @@ function renderMap({ engine }, player, segment) {
       ${worldBands}
       <div class="teaser" style="top:${pct(teaser.top, height)};height:${pct(teaser.bottom - teaser.top, height)}">
         <span class="cloud c1">☁️</span><span class="cloud c2">☁️</span><span class="cloud c3">☁️</span>
-        <div class="teaser-card"><small>Mundo ${stages.length + 1}</small><strong>${esc(segment.comingSoon || 'Novos desafios')}</strong><span>Em breve</span></div>
+        <div class="teaser-card"><small>Cidade ${stages.length + 1} · ${esc(segment.comingSoon?.name || 'Novos desafios')}</small><strong>${esc(segment.comingSoon?.city || 'Próxima cidade')}</strong><span>Em breve</span></div>
       </div>
       <svg class="road" viewBox="0 0 ${W} ${height}" aria-hidden="true">
         <path d="${road}" class="road-curb"/>
@@ -153,7 +153,7 @@ export function render(ctx) {
   const worldsList = segment.stages
     .map((s) => {
       const done = s.missions.filter((m) => player.completedMissions[m.id]).length;
-      return `<li style="--c:${esc(s.color)}"><span>${esc(s.icon)} ${esc(s.name)}</span><span class="world-progress"><span style="width:${(done / s.missions.length) * 100}%"></span></span><small>${done}/${s.missions.length}</small></li>`;
+      return `<li style="--c:${esc(s.color)}"><span>${esc(s.icon)} ${esc(s.city || s.name)}</span><span class="world-progress"><span style="width:${(done / s.missions.length) * 100}%"></span></span><small>${done}/${s.missions.length}</small></li>`;
     })
     .join('');
 
@@ -164,18 +164,18 @@ export function render(ctx) {
         ${
           next
             ? `<section class="card next-card" style="--c:${esc(summary.currentStage.color)}">
-                <span class="eyebrow">${next.boss ? `Chefão do mundo ${nextPos.si + 1}` : `Próxima fase · Mundo ${nextPos.si + 1}`}</span>
+                <span class="eyebrow">${next.boss ? `Chefão de ${esc(summary.currentStage.city || summary.currentStage.name)}` : `Próxima fase · ${esc(summary.currentStage.city || summary.currentStage.name)}`}</span>
                 <div class="next-head"><span class="next-icon">${esc(next.icon)}</span><h2>${esc(next.title)}</h2></div>
                 <p>${esc(next.description)}</p>
                 <div class="chips"><span class="chip chip-xp">+${fmt(next.xp)} XP</span>${next.coins ? `<span class="chip chip-coin">+${fmt(next.coins)} 🪙</span>` : ''}</div>
                 <button class="btn btn-primary btn-block" data-action="openMission" data-stage="${nextPos.si}" data-mission="${nextPos.mi}">Ver fase</button>
               </section>`
-            : `<section class="card next-card"><span class="eyebrow">Trilha concluída</span><h2>👑 Todas as fases concluídas!</h2><p>Novos mundos chegam em breve.</p></section>`
+            : `<section class="card next-card"><span class="eyebrow">Trilha concluída</span><h2>👑 Todas as fases concluídas!</h2><p>Novas cidades chegam em breve.</p></section>`
         }
         <section class="card">
           <h2 class="card-title">Progresso</h2>
           <div class="progress-head"><div class="ring" style="--p:${summary.percent}"><span>${summary.percent}%</span></div>
-          <p><strong>${summary.doneMissions} de ${summary.totalMissions}</strong> fases<br><strong>${summary.stagesDone} de ${summary.totalStages}</strong> mundos</p></div>
+          <p><strong>${summary.doneMissions} de ${summary.totalMissions}</strong> fases<br><strong>${summary.stagesDone} de ${summary.totalStages}</strong> cidades</p></div>
           <ul class="worlds-list">${worldsList}</ul>
         </section>
         <section class="card">
@@ -222,7 +222,7 @@ function missionModal(ctx, si, mi) {
       <button class="btn btn-primary btn-block" data-action="simulate" data-event="${esc(mission.trigger)}">Simular conclusão (demo)</button>
       <p class="hint">No painel real, esta fase é concluída automaticamente pelo evento <code>${esc(mission.trigger)}</code>.</p>`;
   } else {
-    footer = `<p class="status status-locked">🔒 ${prev ? `Conclua antes: <strong>${esc(prev.title)}</strong>` : `Conclua o mundo ${si} para desbloquear.`}</p>`;
+    footer = `<p class="status status-locked">🔒 ${prev ? `Conclua antes: <strong>${esc(prev.title)}</strong>` : `Conclua ${esc(engine.segmentOf(player).stages[si - 1]?.city || 'a cidade anterior')} para desbloquear.`}</p>`;
   }
 
   const overlay = document.createElement('div');
@@ -231,7 +231,7 @@ function missionModal(ctx, si, mi) {
     <div class="modal mission-modal" role="dialog" aria-modal="true" aria-labelledby="mission-title" style="--c:${esc(stage.color)}">
       <button class="modal-close" data-action="closeModal" aria-label="Fechar">×</button>
       <div class="mission-modal-icon ${mission.boss ? 'is-boss' : ''}">${esc(mission.icon || '⭐')}</div>
-      <span class="eyebrow">${mission.boss ? `👑 Chefão do mundo ${si + 1}` : `Mundo ${si + 1} · ${esc(stage.name)}`}</span>
+      <span class="eyebrow">${mission.boss ? `👑 Chefão de ${esc(stage.city || stage.name)}` : `${esc(stage.city || stage.name)} · ${esc(stage.name)}`}</span>
       <h2 id="mission-title">${esc(mission.title)}</h2>
       <p>${esc(mission.description)}</p>
       <div class="chips"><span class="chip chip-xp">+${fmt(mission.xp)} XP</span>${mission.coins ? `<span class="chip chip-coin">+${fmt(mission.coins)} 🪙</span>` : ''}</div>

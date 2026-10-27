@@ -62,7 +62,7 @@ export function setupFeedback(bus) {
     }),
   );
   bus.on('stage:completed', ({ stage }) => {
-    toast({ icon: stage.icon, title: `Mundo "${stage.name}" concluído!`, text: `Bônus +${fmt(stage.bonusXp)} XP`, tone: 'success' });
+    toast({ icon: stage.icon, title: `${stage.city || stage.name} concluída!`, text: `Bônus +${fmt(stage.bonusXp)} XP`, tone: 'success' });
     confetti();
   });
   bus.on('badge:earned', ({ badge }) => toast({ icon: badge.icon, title: 'Nova conquista!', text: badge.name, tone: 'gold' }));
