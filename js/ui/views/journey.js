@@ -11,6 +11,16 @@ const TEASER = 190; // "em breve" no fim da trilha
 const PAD = 0; // o mapa começa direto na primeira cidade
 const DECOR = ['🏢', '🌳', '🏬', '🚦', '🏠', '🌳', '🅿️', '⛽', '🏦', '🚏'];
 
+// Carro visto de cima: 0 = subindo, 1 = noroeste, 2 = esquerda, 3 = sudoeste, 4 = descendo.
+// As direções para a direita usam os mesmos desenhos espelhados.
+const CAR_SPRITES = [0, 1, 2, 3, 4].map((i) => `assets/car/car-${i}.png`);
+// Índice = direção em passos de 45° a partir do leste (sentido horário, y para baixo).
+const CAR_HEADINGS = [[2, true], [3, true], [4, false], [3, false], [2, false], [1, false], [0, false], [1, true]];
+const CAR_HALF = 30; // meio comprimento do carro, em px
+const CAR_SPEED = 260; // unidades do mapa por segundo
+let lastCar = null; // { playerId, len } — onde o carro parou no último render
+let carAnim = 0;
+
 function buildLayout(stages) {
   const nodes = [];
   const worlds = [];
@@ -107,10 +117,12 @@ function renderMap({ engine }, player, segment) {
     })
     .join('');
 
+  // O carro para na estrada logo antes da fase atual (ou no "em breve", se a trilha acabou);
+  // a posição exata e o trajeto são calculados em afterRender, sobre o caminho já desenhado.
   const current = nodes[statuses.indexOf('current')];
-  const car = current
-    ? `<div class="car ${current.mission.boss ? 'car-boss' : ''}" style="left:${pct(current.x, W)};top:${pct(current.top, height)}" aria-hidden="true">${esc(segment.icon)}</div>`
-    : '';
+  const stopY = current ? current.top : end.y;
+  const stopGap = current ? (current.mission.boss ? 46 : 33) : 0; // raio da fase, em px
+  const car = `<div class="car" data-y="${stopY}" data-gap="${stopGap}" aria-hidden="true"><img src="${CAR_SPRITES[4]}" alt=""></div>`;
 
   return `
     <div class="map" style="aspect-ratio:${W}/${height}">
@@ -193,8 +205,66 @@ function locate(segment, missionId) {
   return null;
 }
 
+// Leva o carro pela estrada da última parada até a nova, virando o desenho conforme a curva.
+function driveCar(player) {
+  cancelAnimationFrame(carAnim);
+  const car = document.querySelector('.car');
+  const path = document.querySelector('.road-asphalt');
+  if (!car || !path) return;
+  const img = car.querySelector('img');
+  const height = path.ownerSVGElement.viewBox.baseVal.height;
+  const scale = car.parentElement.clientWidth / W || 1;
+  const total = path.getTotalLength();
+
+  // A estrada só desce, então dá para achar o comprimento de um y por busca binária.
+  const lengthAtY = (y) => {
+    let lo = 0;
+    let hi = total;
+    for (let i = 0; i < 30; i++) {
+      const mid = (lo + hi) / 2;
+      if (path.getPointAtLength(mid).y < y) lo = mid;
+      else hi = mid;
+    }
+    return lo;
+  };
+
+  const place = (len) => {
+    const p = path.getPointAtLength(len);
+    const a = path.getPointAtLength(Math.max(0, len - 2));
+    const b = path.getPointAtLength(Math.min(total, len + 2));
+    const step = Math.round(Math.atan2(b.y - a.y, b.x - a.x) / (Math.PI / 4));
+    const [sprite, mirror] = CAR_HEADINGS[((step % 8) + 8) % 8];
+    car.style.left = pct(p.x, W);
+    car.style.top = pct(p.y, height);
+    if (!img.src.endsWith(CAR_SPRITES[sprite])) img.src = CAR_SPRITES[sprite];
+    img.classList.toggle('is-mirrored', mirror);
+  };
+
+  const gap = (Number(car.dataset.gap) + CAR_HALF) / scale;
+  const to = Math.max(0, lengthAtY(Number(car.dataset.y)) - gap);
+  // Mesmo cliente: sai de onde parou. Ao abrir o mapa ou trocar de cliente: um trechinho de entrada.
+  const from = lastCar?.playerId === player.id ? lastCar.len : Math.max(0, to - 140);
+  lastCar = { playerId: player.id, len: to };
+
+  if (from >= to || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    place(to);
+    return;
+  }
+  const duration = Math.min(4000, Math.max(700, ((to - from) / CAR_SPEED) * 1000));
+  const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
+  const t0 = performance.now();
+  const tick = (now) => {
+    const t = Math.min(1, (now - t0) / duration);
+    place(from + (to - from) * ease(t));
+    if (t < 1) carAnim = requestAnimationFrame(tick);
+  };
+  place(from);
+  carAnim = requestAnimationFrame(tick);
+}
+
 // Mantém o carro (fase atual) visível: só rola se ele estiver fora da tela.
-export function afterRender() {
+export function afterRender({ store }) {
+  driveCar(store.getCurrentPlayer());
   const el = document.querySelector('.node-current') || [...document.querySelectorAll('.node-done')].pop();
   if (!el) return;
   const { top, bottom } = el.getBoundingClientRect();
