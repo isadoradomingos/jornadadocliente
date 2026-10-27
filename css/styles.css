@@ -180,6 +180,9 @@ input:not([type]), input[type='text'], input[type='number'], select, textarea {
 .road-asphalt { stroke: #4a505c; stroke-width: 30; }
 .road-done { stroke: var(--brand); stroke-width: 30; opacity: 0.92; }
 .road-lane { stroke: var(--logo-yellow); stroke-width: 3; stroke-dasharray: 12 12; }
+.stop { stroke: #fff; stroke-width: 3; fill: #9aa1ad; }
+.stop-done { fill: var(--c); }
+.stop-current { fill: var(--c); }
 
 .node {
   position: absolute; z-index: 4; transform: translate(-50%, -50%);
@@ -189,6 +192,16 @@ input:not([type]), input[type='text'], input[type='number'], select, textarea {
   box-shadow: 0 6px 0 #9aa1ad, 0 10px 18px rgb(0 0 0 / 0.18);
   transition: transform 0.15s;
 }
+/* O botão fica ao lado da pista (--side = distância do centro do botão ao pontinho)
+   e um tracinho liga os dois. */
+.node { --side: 72px; }
+.node-boss { --side: 86px; }
+.node::before {
+  content: ''; position: absolute; top: 50%; width: calc(var(--side) - 50%);
+  border-top: 3px dotted #fff; transform: translateY(-50%);
+}
+.node-right::before { right: 100%; }
+.node-left::before { left: 100%; }
 .node:hover { transform: translate(-50%, -50%) scale(1.07); }
 .node:active { transform: translate(-50%, -54%) scale(0.98); }
 .node-icon { font-size: 1.6rem; line-height: 1; }

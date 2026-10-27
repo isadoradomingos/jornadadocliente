@@ -26,6 +26,7 @@ export const DEFAULT_CONFIG = {
       id: 'mobilidade',
       name: 'Mobilidade urbana',
       icon: '🚕',
+      vehicle: 'car', // desenhos em assets/car/ — o veículo que anda pelo mapa
       available: true,
       // Eventos aplicados ao criar a central: ela já entra no jogo pelo painel.
       startEvents: ['painel_acessado'],
@@ -70,6 +71,7 @@ export const DEFAULT_CONFIG = {
       id: 'entregas',
       name: 'Entregas',
       icon: '🛵',
+      vehicle: 'moto', // entregador de moto, em assets/moto/
       available: false, // trilha ainda não definida
       startEvents: ['painel_acessado'],
       stages: [],

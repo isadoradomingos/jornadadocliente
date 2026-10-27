@@ -11,15 +11,38 @@ const TEASER = 190; // "em breve" no fim da trilha
 const PAD = 0; // o mapa começa direto na primeira cidade
 const DECOR = ['🏢', '🌳', '🏬', '🚦', '🏠', '🌳', '🅿️', '⛽', '🏦', '🚏'];
 
-// Carro visto de cima: 0 = subindo, 1 = noroeste, 2 = esquerda, 3 = sudoeste, 4 = descendo.
+// Veículo visto de cima (segment.vehicle: 'car' ou 'moto'), um desenho por ângulo:
+// 0 = subindo, 1 = noroeste, 2 = esquerda, 3 = sudoeste, 4 = descendo.
 // As direções para a direita usam os mesmos desenhos espelhados.
-const CAR_SPRITES = [0, 1, 2, 3, 4].map((i) => `assets/car/car-${i}.png`);
+const vehicleSprite = (vehicle, i) => `assets/${vehicle}/${vehicle}-${i}.png`;
 // Índice = direção em passos de 45° a partir do leste (sentido horário, y para baixo).
 const CAR_HEADINGS = [[2, true], [3, true], [4, false], [3, false], [2, false], [1, false], [0, false], [1, true]];
-const CAR_HALF = 30; // meio comprimento do carro, em px
 const CAR_SPEED = 260; // unidades do mapa por segundo
-let lastCar = null; // { playerId, len } — onde o carro parou no último render
+let lastCar = null; // { playerId, len } — onde o veículo está agora na estrada
 let carAnim = 0;
+let stopCarWait = null;
+
+// Chama fn quando não houver janela de aviso aberta na frente do mapa (ex.: "Subiu de nível").
+// Os toasts do canto somem sozinhos e não seguram o veículo.
+// O instante de espera cobre a janela que surge logo depois do render, na mesma conclusão.
+function afterNotices(fn) {
+  let timer = 0;
+  const check = () => {
+    clearTimeout(timer);
+    if (document.querySelector('.modal-overlay')) return;
+    timer = setTimeout(() => {
+      observer.disconnect();
+      fn();
+    }, 60);
+  };
+  const observer = new MutationObserver(check);
+  observer.observe(document.body, { childList: true, subtree: true });
+  stopCarWait = () => {
+    observer.disconnect();
+    clearTimeout(timer);
+  };
+  check();
+}
 
 function buildLayout(stages) {
   const nodes = [];
@@ -30,8 +53,10 @@ function buildLayout(stages) {
     const top = y;
     y += BANNER;
     stage.missions.forEach((mission, mi) => {
+      // x = ponto na pista; o botão da fase fica ao lado, do lado com mais espaço.
       const x = mission.boss ? W / 2 : W / 2 + 118 * Math.sin(k * 1.05);
-      nodes.push({ stage, si, mission, mi, n: k + 1, x, top: y });
+      const side = x > W / 2 ? 'left' : 'right';
+      nodes.push({ stage, si, mission, mi, n: k + 1, x, side, top: y });
       y += mission.boss ? BOSS_STEP : STEP;
       k++;
     });
@@ -71,14 +96,12 @@ function renderMap({ engine }, player, segment) {
   const stages = segment.stages;
   const { nodes, worlds, teaser, height } = buildLayout(stages);
   const statuses = nodes.map((n) => nodeStatus(engine, player, n));
-  const lastDone = statuses.lastIndexOf('done');
 
   // Estrada: começa na largada (no topo), passa por todas as fases e desce até o "em breve".
   const start = { x: W / 2, y: -20 }; // a estrada entra pelo topo do mapa
   const end = { x: W / 2, y: teaser.top + 50 };
   const pts = [start, ...nodes.map((n) => ({ x: n.x, y: n.top })), end];
   const road = smoothPath(pts);
-  const doneRoad = smoothPath(pts.slice(0, lastDone + 2 + (statuses[lastDone + 1] === 'current' ? 1 : 0)));
 
   const worldBands = worlds
     .map((w) => {
@@ -105,7 +128,7 @@ function renderMap({ engine }, player, segment) {
       const status = statuses[i];
       const { mission } = node;
       return `
-        <button class="node node-${status} ${mission.boss ? 'node-boss' : ''}" style="left:${pct(node.x, W)};top:${pct(node.top, height)};--c:${esc(node.stage.color)}"
+        <button class="node node-${status} node-${node.side} ${mission.boss ? 'node-boss' : ''}" style="left:calc(${pct(node.x, W)} ${node.side === 'left' ? '-' : '+'} var(--side));top:${pct(node.top, height)};--c:${esc(node.stage.color)}"
           data-action="openMission" data-stage="${node.si}" data-mission="${node.mi}"
           aria-label="Fase ${node.n}: ${esc(mission.title)} (${status === 'done' ? 'concluída' : status === 'current' ? 'fase atual' : 'bloqueada'})">
           ${mission.boss ? '<span class="boss-tag">Chefão</span>' : ''}
@@ -117,12 +140,16 @@ function renderMap({ engine }, player, segment) {
     })
     .join('');
 
-  // O carro para na estrada logo antes da fase atual (ou no "em breve", se a trilha acabou);
+  // Cada fase tem um pontinho na pista (o tracinho até o botão é desenhado no CSS do botão).
+  const stops = nodes
+    .map((node, i) => `<circle cx="${node.x.toFixed(1)}" cy="${node.top}" r="7" class="stop stop-${statuses[i]}" style="--c:${esc(node.stage.color)}"/>`)
+    .join('');
+
+  // O carro para em cima do pontinho da fase atual (ou no "em breve", se a trilha acabou);
   // a posição exata e o trajeto são calculados em afterRender, sobre o caminho já desenhado.
   const current = nodes[statuses.indexOf('current')];
-  const stopY = current ? current.top : end.y;
-  const stopGap = current ? (current.mission.boss ? 46 : 33) : 0; // raio da fase, em px
-  const car = `<div class="car" data-y="${stopY}" data-gap="${stopGap}" aria-hidden="true"><img src="${CAR_SPRITES[4]}" alt=""></div>`;
+  const vehicle = segment.vehicle || 'car';
+  const car = `<div class="car" data-y="${current ? current.top : end.y}" data-vehicle="${esc(vehicle)}" aria-hidden="true"><img src="${vehicleSprite(vehicle, 4)}" alt=""></div>`;
 
   return `
     <div class="map" style="aspect-ratio:${W}/${height}">
@@ -134,8 +161,9 @@ function renderMap({ engine }, player, segment) {
       <svg class="road" viewBox="0 0 ${W} ${height}" aria-hidden="true">
         <path d="${road}" class="road-curb"/>
         <path d="${road}" class="road-asphalt"/>
-        ${lastDone >= 0 ? `<path d="${doneRoad}" class="road-done"/>` : ''}
+        <path d="${road}" class="road-done" stroke-dasharray="0 1e5"/>
         <path d="${road}" class="road-lane"/>
+        ${stops}
       </svg>
       ${nodeEls}
       ${car}
@@ -208,12 +236,14 @@ function locate(segment, missionId) {
 // Leva o carro pela estrada da última parada até a nova, virando o desenho conforme a curva.
 function driveCar(player) {
   cancelAnimationFrame(carAnim);
+  stopCarWait?.();
   const car = document.querySelector('.car');
   const path = document.querySelector('.road-asphalt');
   if (!car || !path) return;
   const img = car.querySelector('img');
+  // O trecho azul é a mesma estrada, pintada só até onde o veículo está (fica sempre alinhado).
+  const done = document.querySelector('.road-done');
   const height = path.ownerSVGElement.viewBox.baseVal.height;
-  const scale = car.parentElement.clientWidth / W || 1;
   const total = path.getTotalLength();
 
   // A estrada só desce, então dá para achar o comprimento de um y por busca binária.
@@ -234,17 +264,19 @@ function driveCar(player) {
     const b = path.getPointAtLength(Math.min(total, len + 2));
     const step = Math.round(Math.atan2(b.y - a.y, b.x - a.x) / (Math.PI / 4));
     const [sprite, mirror] = CAR_HEADINGS[((step % 8) + 8) % 8];
+    lastCar = { playerId: player.id, len };
+    done.setAttribute('stroke-dasharray', `${len.toFixed(1)} 1e5`);
     car.style.left = pct(p.x, W);
     car.style.top = pct(p.y, height);
-    if (!img.src.endsWith(CAR_SPRITES[sprite])) img.src = CAR_SPRITES[sprite];
+    const src = vehicleSprite(car.dataset.vehicle, sprite);
+    if (!img.src.endsWith(src)) img.src = src;
     img.classList.toggle('is-mirrored', mirror);
   };
 
-  const gap = (Number(car.dataset.gap) + CAR_HALF) / scale;
-  const to = Math.max(0, lengthAtY(Number(car.dataset.y)) - gap);
-  // Mesmo cliente: sai de onde parou. Ao abrir o mapa ou trocar de cliente: um trechinho de entrada.
+  const to = lengthAtY(Number(car.dataset.y));
+  // Mesmo cliente: sai de onde o veículo está (mesmo que tenha sido interrompido no meio).
+  // Ao abrir o mapa ou trocar de cliente: um trechinho de entrada.
   const from = lastCar?.playerId === player.id ? lastCar.len : Math.max(0, to - 140);
-  lastCar = { playerId: player.id, len: to };
 
   if (from >= to || matchMedia('(prefers-reduced-motion: reduce)').matches) {
     place(to);
@@ -252,14 +284,18 @@ function driveCar(player) {
   }
   const duration = Math.min(4000, Math.max(700, ((to - from) / CAR_SPEED) * 1000));
   const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
-  const t0 = performance.now();
+  let t0;
   const tick = (now) => {
+    t0 ??= now;
     const t = Math.min(1, (now - t0) / duration);
     place(from + (to - from) * ease(t));
     if (t < 1) carAnim = requestAnimationFrame(tick);
   };
+  // O veículo espera parado enquanto houver aviso na frente, para a viagem não passar despercebida.
   place(from);
-  carAnim = requestAnimationFrame(tick);
+  afterNotices(() => {
+    carAnim = requestAnimationFrame(tick);
+  });
 }
 
 // Mantém o carro (fase atual) visível: só rola se ele estiver fora da tela.
