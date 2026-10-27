@@ -180,11 +180,9 @@ input:not([type]), input[type='text'], input[type='number'], select, textarea {
 .road-done { stroke: var(--brand); stroke-width: 30; opacity: 0.92; }
 .road-lane { stroke: var(--logo-yellow); stroke-width: 3; stroke-dasharray: 12 12; }
 
-.start-flag {
-  position: absolute; transform: translate(-50%, -50%); z-index: 2;
-  background: var(--text-strong); color: #fff; font-weight: 800; font-size: 0.8rem;
-  padding: 4px 12px; border-radius: 999px; white-space: nowrap;
-}
+/* Largada: a estrada sai do portão da garagem */
+.garage { position: absolute; left: 50%; transform: translateX(-50%); z-index: 2; filter: drop-shadow(0 6px 8px rgb(38 38 38 / 0.18)); }
+.garage svg { display: block; width: 100%; height: auto; }
 
 .node {
   position: absolute; z-index: 4; transform: translate(-50%, -50%);
