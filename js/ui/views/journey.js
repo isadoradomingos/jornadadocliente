@@ -164,7 +164,7 @@ export function render(ctx) {
         ${
           next
             ? `<section class="card next-card" style="--c:${esc(summary.currentStage.color)}">
-                <span class="eyebrow">${next.boss ? `Chefão de ${esc(summary.currentStage.city || summary.currentStage.name)}` : `Próxima fase · ${esc(summary.currentStage.city || summary.currentStage.name)}`}</span>
+                <span class="eyebrow">${next.boss ? `Chefão · ${esc(summary.currentStage.city || summary.currentStage.name)}` : `Próxima fase · ${esc(summary.currentStage.city || summary.currentStage.name)}`}</span>
                 <div class="next-head"><span class="next-icon">${esc(next.icon)}</span><h2>${esc(next.title)}</h2></div>
                 <p>${esc(next.description)}</p>
                 <div class="chips"><span class="chip chip-xp">+${fmt(next.xp)} XP</span>${next.coins ? `<span class="chip chip-coin">+${fmt(next.coins)} 🪙</span>` : ''}</div>
@@ -222,7 +222,7 @@ function missionModal(ctx, si, mi) {
       <button class="btn btn-primary btn-block" data-action="simulate" data-event="${esc(mission.trigger)}">Simular conclusão (demo)</button>
       <p class="hint">No painel real, esta fase é concluída automaticamente pelo evento <code>${esc(mission.trigger)}</code>.</p>`;
   } else {
-    footer = `<p class="status status-locked">🔒 ${prev ? `Conclua antes: <strong>${esc(prev.title)}</strong>` : `Conclua ${esc(engine.segmentOf(player).stages[si - 1]?.city || 'a cidade anterior')} para desbloquear.`}</p>`;
+    footer = `<p class="status status-locked">🔒 ${prev ? `Conclua antes: <strong>${esc(prev.title)}</strong>` : `Conclua “${esc(engine.segmentOf(player).stages[si - 1]?.city || 'a cidade anterior')}” para desbloquear.`}</p>`;
   }
 
   const overlay = document.createElement('div');
@@ -231,7 +231,7 @@ function missionModal(ctx, si, mi) {
     <div class="modal mission-modal" role="dialog" aria-modal="true" aria-labelledby="mission-title" style="--c:${esc(stage.color)}">
       <button class="modal-close" data-action="closeModal" aria-label="Fechar">×</button>
       <div class="mission-modal-icon ${mission.boss ? 'is-boss' : ''}">${esc(mission.icon || '⭐')}</div>
-      <span class="eyebrow">${mission.boss ? `👑 Chefão de ${esc(stage.city || stage.name)}` : `${esc(stage.city || stage.name)} · ${esc(stage.name)}`}</span>
+      <span class="eyebrow">${mission.boss ? `👑 Chefão · ${esc(stage.city || stage.name)}` : `${esc(stage.city || stage.name)} · ${esc(stage.name)}`}</span>
       <h2 id="mission-title">${esc(mission.title)}</h2>
       <p>${esc(mission.description)}</p>
       <div class="chips"><span class="chip chip-xp">+${fmt(mission.xp)} XP</span>${mission.coins ? `<span class="chip chip-coin">+${fmt(mission.coins)} 🪙</span>` : ''}</div>

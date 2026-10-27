@@ -1,6 +1,6 @@
 // Estado central da aplicação: configuração da jornada + clientes (players).
 // Toda alteração passa por aqui, é persistida pelo adapter e notifica a UI.
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export function createStore(storage, key) {
   let state = null;

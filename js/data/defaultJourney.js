@@ -29,11 +29,11 @@ export const DEFAULT_CONFIG = {
       available: true,
       // Eventos aplicados ao criar a central: ela já entra no jogo pelo painel.
       startEvents: ['painel_acessado'],
-      comingSoon: { city: 'Porto Corrida', name: 'Primeiras corridas' },
+      comingSoon: { city: 'Avenida Bandeirada', name: 'Primeiras corridas' },
       stages: [
         {
           id: 'mob_mundo1',
-          city: 'Vila Ignição', // onde a central dá a partida
+          city: 'Vale das Primeiras Corridas', // onde a central se prepara para rodar
           name: 'Preparando a central',
           icon: '🛠️',
           color: '#307fff',
@@ -46,12 +46,12 @@ export const DEFAULT_CONFIG = {
             { id: 'mob_tarifas', title: 'Configurar tarifas e categorias', short: 'Tarifas', icon: '🏷️', description: 'Cadastre as categorias de veículo e as tarifas de cada uma.', trigger: 'tarifas_categorias_configuradas', target: 1, xp: 80, coins: 15 },
             { id: 'mob_taxas', title: 'Configurar as taxas da central', short: 'Taxas', icon: '💲', description: 'Defina as taxas que a central cobra sobre as corridas.', trigger: 'taxas_central_configuradas', target: 1, xp: 80, coins: 15 },
             { id: 'mob_despacho', title: 'Configurar o despacho', short: 'Despacho', icon: '📡', description: 'Defina como as corridas são distribuídas entre os motoristas.', trigger: 'despacho_configurado', target: 1, xp: 100, coins: 20 },
-            { id: 'mob_integracao', title: 'Realizar a integração financeira', short: 'Integração financeira', icon: '🏦', boss: true, description: 'O chefão de Vila Ignição: conclua a integração financeira da central.', trigger: 'integracao_financeira_concluida', target: 1, xp: 300, coins: 60 },
+            { id: 'mob_integracao', title: 'Realizar a integração financeira', short: 'Integração financeira', icon: '🏦', boss: true, description: 'O chefão do Vale das Primeiras Corridas: conclua a integração financeira da central.', trigger: 'integracao_financeira_concluida', target: 1, xp: 300, coins: 60 },
           ],
         },
         {
           id: 'mob_mundo2',
-          city: 'Frotópolis', // onde a frota se forma
+          city: 'Vila dos Motoristas', // onde a frota se forma
           name: 'Montando a frota',
           icon: '🚗',
           color: '#f4a500',
@@ -80,7 +80,7 @@ export const DEFAULT_CONFIG = {
     { id: 'b_boas_vindas', name: 'Boas-vindas', icon: '👋', description: 'Entre no painel da sua central.', rule: { type: 'missions_completed', value: 1 }, xp: 10 },
     { id: 'b_olivia', name: 'Papo com a Olivia', icon: '💬', description: 'Abra seu primeiro chamado com a Olivia.', rule: { type: 'event_count', event: 'chamado_olivia_aberto', value: 1 }, xp: 20 },
     { id: 'b_preco', name: 'Preço certo', icon: '🏷️', description: 'Configure tarifas e categorias.', rule: { type: 'event_count', event: 'tarifas_categorias_configuradas', value: 1 }, xp: 20 },
-    { id: 'b_chefao', name: 'Chefão derrotado', icon: '🏆', description: 'Conclua a integração financeira e vença o chefão de Vila Ignição.', rule: { type: 'stage_completed', stageId: 'mob_mundo1' }, xp: 50 },
+    { id: 'b_chefao', name: 'Chefão derrotado', icon: '🏆', description: 'Conclua a integração financeira e vença o chefão do Vale das Primeiras Corridas.', rule: { type: 'stage_completed', stageId: 'mob_mundo1' }, xp: 50 },
     { id: 'b_motorista', name: 'Primeiro motorista', icon: '🚗', description: 'Aprove o primeiro cadastro de motorista.', rule: { type: 'event_count', event: 'cadastro_motorista_aprovado', value: 1 }, xp: 30 },
     { id: 'b_nivel5', name: 'Central em alta', icon: '🚀', description: 'Alcance o nível 5.', rule: { type: 'level', value: 5 }, xp: 50 },
     { id: 'b_completa', name: 'Trilha completa', icon: '👑', description: 'Conclua todas as cidades disponíveis.', rule: { type: 'all_stages' }, xp: 100 },
