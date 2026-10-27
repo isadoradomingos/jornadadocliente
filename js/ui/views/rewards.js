@@ -32,7 +32,7 @@ export function render({ store }) {
   return `
     <div class="balance card">
       <span class="balance-icon" aria-hidden="true">🪙</span>
-      <div><span class="stat-big">${fmt(player.coins)}</span><p>moedas disponíveis · ganhe mais concluindo missões e etapas</p></div>
+      <div><span class="stat-big">${fmt(player.coins)}</span><p>moedas disponíveis · ganhe mais concluindo fases e mundos</p></div>
     </div>
     <h2 class="section-title">Catálogo de recompensas</h2>
     <ul class="reward-grid">${rewards}</ul>

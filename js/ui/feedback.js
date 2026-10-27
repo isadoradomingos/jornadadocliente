@@ -16,7 +16,7 @@ export function toast({ icon = '✨', title, text = '', tone = 'default' }) {
 
 function confetti() {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const colors = ['#7c5cff', '#f59e0b', '#10b981', '#ec4899', '#0ea5e9'];
+  const colors = ['#307fff', '#ea4242', '#ffce00', '#37b3dd', '#4db956'];
   const layer = document.createElement('div');
   layer.className = 'confetti';
   for (let i = 0; i < 60; i++) {
@@ -54,10 +54,15 @@ export function setupFeedback(bus) {
   document.body.append(toastRoot);
 
   bus.on('mission:completed', ({ mission }) =>
-    toast({ icon: '✅', title: 'Missão concluída', text: `${mission.title} · +${fmt(mission.xp)} XP` }),
+    toast({
+      icon: mission.boss ? '👑' : '✅',
+      title: mission.boss ? 'Chefão derrotado!' : 'Fase concluída',
+      text: `${mission.title} · +${fmt(mission.xp)} XP`,
+      tone: mission.boss ? 'gold' : 'default',
+    }),
   );
   bus.on('stage:completed', ({ stage }) => {
-    toast({ icon: stage.icon, title: `Etapa "${stage.name}" concluída!`, text: `Bônus +${fmt(stage.bonusXp)} XP`, tone: 'success' });
+    toast({ icon: stage.icon, title: `Mundo "${stage.name}" concluído!`, text: `Bônus +${fmt(stage.bonusXp)} XP`, tone: 'success' });
     confetti();
   });
   bus.on('badge:earned', ({ badge }) => toast({ icon: badge.icon, title: 'Nova conquista!', text: badge.name, tone: 'gold' }));

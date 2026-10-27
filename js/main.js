@@ -22,15 +22,15 @@ const isFresh = await store.init(createInitialState);
 const engine = createEngine({ store, bus });
 
 if (isFresh) {
-  SEED_PLAYERS.forEach(({ name, avatar, events }) => {
-    const player = engine.createPlayer(name, avatar);
+  SEED_PLAYERS.forEach(({ name, avatar, segment, events }) => {
+    const player = engine.createPlayer(name, avatar, segment);
     Object.entries(events).forEach(([event, amount]) => engine.track(event, { playerId: player.id, amount, silent: true }));
   });
   store.setState({ currentPlayerId: Object.keys(store.getState().players)[0] });
 }
 
 const ctx = { store, engine, bus, storage, storageKey: STORAGE_KEY };
-const routes = { jornada: journey, conquistas: achievements, recompensas: rewards, ranking, painel: admin };
+const routes = { jornada: journey, conquistas: achievements, recompensas: rewards, ranking, admin };
 const actions = Object.assign({}, headerActions, feedbackActions, ...Object.values(routes).map((v) => v.actions || {}));
 
 const headerEl = document.getElementById('app-header');
@@ -45,6 +45,7 @@ function render() {
   const route = currentRoute();
   headerEl.innerHTML = renderHeader(ctx, route);
   viewEl.innerHTML = routes[route].render(ctx);
+  routes[route].afterRender?.(ctx);
 }
 
 // Delegação: qualquer elemento com data-action="nome" chama actions[nome](ctx, el, evento).

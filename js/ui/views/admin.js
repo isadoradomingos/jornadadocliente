@@ -2,24 +2,27 @@ import { esc } from '../dom.js';
 import { toast } from '../feedback.js';
 import { DEFAULT_CONFIG } from '../../data/defaultJourney.js';
 
-const AVATARS = ['🙂', '😎', '🧑', '👩', '👨', '🧑‍💼', '👵', '🧒'];
+const AVATARS = { mobilidade: ['🚕', '🚗', '🚙', '🚖', '🛺'], entregas: ['🛵', '🚚', '📦', '🚲'] };
 
 function knownEvents(config) {
-  const set = new Set(config.stages.flatMap((s) => s.missions.map((m) => m.trigger)));
+  const set = new Set(config.segments.flatMap((seg) => seg.stages.flatMap((s) => s.missions.map((m) => m.trigger))));
   config.badges.forEach((b) => b.rule.event && set.add(b.rule.event));
   return [...set];
 }
 
 function validateConfig(config) {
-  if (!config || !Array.isArray(config.stages) || !config.stages.length) throw new Error('"stages" precisa ser uma lista com ao menos uma etapa.');
+  if (!config || !Array.isArray(config.segments) || !config.segments.length) throw new Error('"segments" precisa ser uma lista com ao menos um segmento.');
   if (!config.levels?.base || !config.levels?.exponent || !config.levels?.titles?.length) throw new Error('"levels" precisa de base, exponent e titles.');
   const ids = new Set();
-  for (const stage of config.stages) {
-    if (!stage.id || !stage.name || !Array.isArray(stage.missions)) throw new Error(`Etapa inválida: ${stage.id || '(sem id)'} — precisa de id, name e missions.`);
-    for (const m of stage.missions) {
-      if (!m.id || !m.title || !m.trigger || typeof m.xp !== 'number') throw new Error(`Missão inválida em "${stage.id}": precisa de id, title, trigger e xp numérico.`);
-      if (ids.has(m.id)) throw new Error(`id de missão repetido: ${m.id}`);
-      ids.add(m.id);
+  for (const seg of config.segments) {
+    if (!seg.id || !seg.name || !Array.isArray(seg.stages)) throw new Error(`Segmento inválido: ${seg.id || '(sem id)'} — precisa de id, name e stages.`);
+    for (const stage of seg.stages) {
+      if (!stage.id || !stage.name || !Array.isArray(stage.missions)) throw new Error(`Mundo inválido: ${stage.id || '(sem id)'} — precisa de id, name e missions.`);
+      for (const m of stage.missions) {
+        if (!m.id || !m.title || !m.trigger || typeof m.xp !== 'number') throw new Error(`Fase inválida em "${stage.id}": precisa de id, title, trigger e xp numérico.`);
+        if (ids.has(m.id)) throw new Error(`id de fase repetido: ${m.id}`);
+        ids.add(m.id);
+      }
     }
   }
   config.badges ??= [];
@@ -37,7 +40,7 @@ export function render({ store }) {
     <div class="admin-grid">
       <section class="card">
         <h2 class="card-title">Simulador de eventos</h2>
-        <p class="hint">Dispara eventos para <strong>${esc(player.avatar)} ${esc(player.name)}</strong>, como o sistema real faria.</p>
+        <p class="hint">Dispara eventos para <strong>${esc(player.avatar)} ${esc(player.name)}</strong>, como o painel Machine faria.</p>
         <div class="event-buttons">
           ${events.map((ev) => `<button class="btn btn-sm btn-ghost" data-action="simulate" data-event="${esc(ev)}"><code>${esc(ev)}</code></button>`).join('')}
         </div>
@@ -50,9 +53,12 @@ export function render({ store }) {
       </section>
 
       <section class="card">
-        <h2 class="card-title">Clientes</h2>
+        <h2 class="card-title">Centrais</h2>
         <form class="inline-form" data-action="addPlayer">
-          <input name="name" placeholder="Nome do cliente" required aria-label="Nome do cliente">
+          <input name="name" placeholder="Nome da central" required aria-label="Nome da central">
+          <select name="segment" aria-label="Segmento">
+            ${config.segments.map((s) => `<option value="${esc(s.id)}" ${s.available === false ? 'disabled' : ''}>${esc(s.icon)} ${esc(s.name)}${s.available === false ? ' (em breve)' : ''}</option>`).join('')}
+          </select>
           <button class="btn btn-primary btn-sm">Adicionar</button>
         </form>
         <div class="button-row">
@@ -63,7 +69,7 @@ export function render({ store }) {
 
       <section class="card span-2">
         <h2 class="card-title">Configuração da jornada</h2>
-        <p class="hint">Etapas, missões (gatilho = nome do evento), níveis, conquistas e recompensas. Edite e salve — o progresso de todos é recalculado.</p>
+        <p class="hint">Segmentos → mundos (stages) → fases (missions; <code>trigger</code> = nome do evento, <code>boss: true</code> = chefão). Também níveis, conquistas e recompensas. Ao salvar, o progresso de todas as centrais é recalculado.</p>
         <textarea id="config-json" class="code-area" spellcheck="false" aria-label="Configuração em JSON">${esc(JSON.stringify(config, null, 2))}</textarea>
         <p id="config-error" class="error" role="alert" hidden></p>
         <div class="button-row">
@@ -74,15 +80,15 @@ export function render({ store }) {
       </section>
 
       <section class="card span-2">
-        <h2 class="card-title">Integração</h2>
-        <p class="hint">Como o sistema maior conversa com esta ferramenta:</p>
+        <h2 class="card-title">Integração com o painel</h2>
+        <p class="hint">Como o painel Machine conversa com esta ferramenta:</p>
         <pre class="code-block"><code>// Na mesma página
-JourneyGame.track('pedido_realizado');
-JourneyGame.track('pedido_realizado', { playerId: 'p_123', amount: 2 });
+JourneyGame.track('despacho_configurado');
+JourneyGame.track('cadastro_motorista_aprovado', { playerId: 'p_123', amount: 2 });
 JourneyGame.on('level:up', ({ level, playerId }) => { /* ... */ });
 
 // Embutido via iframe (adicione a origem em integration.allowedOrigins)
-iframe.contentWindow.postMessage({ type: 'journey:track', event: 'pedido_realizado' }, '${esc(location.origin)}');
+iframe.contentWindow.postMessage({ type: 'journey:track', event: 'despacho_configurado' }, '${esc(location.origin)}');
 window.addEventListener('message', (e) => { /* e.data.type === 'journey:mission:completed' ... */ });</code></pre>
       </section>
     </div>`;
@@ -98,11 +104,14 @@ export const actions = {
     }
   },
   addPlayer({ engine, store }, form) {
-    const name = new FormData(form).get('name').trim();
+    const data = new FormData(form);
+    const name = data.get('name').trim();
+    const segment = data.get('segment');
     if (!name) return;
-    const player = engine.createPlayer(name, AVATARS[Math.floor(Math.random() * AVATARS.length)]);
+    const avatars = AVATARS[segment] || AVATARS.mobilidade;
+    const player = engine.createPlayer(name, avatars[Math.floor(Math.random() * avatars.length)], segment);
     store.setState({ currentPlayerId: player.id });
-    toast({ icon: player.avatar, title: 'Cliente adicionado', text: name, tone: 'success' });
+    toast({ icon: player.avatar, title: 'Central adicionada', text: name, tone: 'success' });
   },
   resetPlayer({ engine, store }) {
     const p = store.getCurrentPlayer();

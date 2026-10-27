@@ -1,5 +1,5 @@
-// Motor de gamificação: recebe eventos do cliente e aplica as regras da
-// configuração (missões, etapas, níveis, conquistas, moedas).
+// Motor de gamificação: recebe eventos da central e aplica as regras da
+// configuração (fases, mundos, níveis, conquistas, moedas).
 // Não conhece a interface — comunica resultados pelo barramento de eventos.
 const HISTORY_LIMIT = 100;
 
@@ -9,6 +9,14 @@ export function createEngine({ store, bus }) {
   function newId(prefix) {
     return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
   }
+
+  // ---------- Segmentos ----------
+  function segmentOf(player) {
+    const { segments } = cfg();
+    return segments.find((s) => s.id === player.segment) || segments[0];
+  }
+
+  const stagesOf = (player) => segmentOf(player).stages;
 
   // ---------- Níveis ----------
   function xpForLevel(level) {
@@ -36,10 +44,17 @@ export function createEngine({ store, bus }) {
     return stage.missions.every((m) => player.completedMissions[m.id]);
   }
 
-  function isStageUnlocked(player, index) {
-    const stages = cfg().stages;
-    if (!cfg().sequential || index === 0) return true;
-    return Boolean(player.completedStages[stages[index - 1].id]);
+  function isStageUnlocked(player, stageIndex) {
+    const stages = stagesOf(player);
+    if (!cfg().sequential || stageIndex === 0) return true;
+    return Boolean(player.completedStages[stages[stageIndex - 1].id]);
+  }
+
+  function isMissionUnlocked(player, stageIndex, missionIndex) {
+    if (!isStageUnlocked(player, stageIndex)) return false;
+    if (!cfg().sequentialMissions || missionIndex === 0) return true;
+    const prev = stagesOf(player)[stageIndex].missions[missionIndex - 1];
+    return Boolean(player.completedMissions[prev.id]);
   }
 
   function missionProgress(player, mission) {
@@ -47,16 +62,27 @@ export function createEngine({ store, bus }) {
   }
 
   function journeySummary(player) {
-    const stages = cfg().stages;
+    const stages = stagesOf(player);
     const missions = stages.flatMap((s) => s.missions);
     const done = missions.filter((m) => player.completedMissions[m.id]).length;
-    const currentStage = stages.find((s, i) => isStageUnlocked(player, i) && !player.completedStages[s.id]) || null;
+    let currentStage = null;
+    let currentMission = null;
+    stages.some((stage, si) =>
+      stage.missions.some((m, mi) => {
+        if (player.completedMissions[m.id] || !isMissionUnlocked(player, si, mi)) return false;
+        currentStage = stage;
+        currentMission = m;
+        return true;
+      }),
+    );
     return {
       totalMissions: missions.length,
       doneMissions: done,
       percent: missions.length ? Math.round((done / missions.length) * 100) : 0,
       currentStage,
+      currentMission,
       stagesDone: stages.filter((s) => player.completedStages[s.id]).length,
+      totalStages: stages.length,
     };
   }
 
@@ -72,8 +98,10 @@ export function createEngine({ store, bus }) {
         return player.xp >= rule.value;
       case 'event_count':
         return (player.eventCounts[rule.event] || 0) >= rule.value;
-      case 'all_stages':
-        return cfg().stages.every((s) => player.completedStages[s.id]);
+      case 'all_stages': {
+        const stages = stagesOf(player);
+        return stages.length > 0 && stages.every((s) => player.completedStages[s.id]);
+      }
       default:
         return false;
     }
@@ -93,19 +121,18 @@ export function createEngine({ store, bus }) {
     let changed = true;
     while (changed) {
       changed = false;
-      cfg().stages.forEach((stage, i) => {
-        if (!isStageUnlocked(player, i)) return;
-        for (const mission of stage.missions) {
-          if (player.completedMissions[mission.id]) continue;
-          if (missionProgress(player, mission) < (mission.target || 1)) continue;
+      stagesOf(player).forEach((stage, si) => {
+        stage.missions.forEach((mission, mi) => {
+          if (player.completedMissions[mission.id] || !isMissionUnlocked(player, si, mi)) return;
+          if (missionProgress(player, mission) < (mission.target || 1)) return;
           player.completedMissions[mission.id] = Date.now();
-          grant(player, mission.xp, mission.coins, `Missão: ${mission.title}`, effects);
+          grant(player, mission.xp, mission.coins, `${mission.boss ? 'Chefão' : 'Fase'}: ${mission.title}`, effects);
           effects.push({ type: 'mission:completed', mission, stage });
           changed = true;
-        }
-        if (!player.completedStages[stage.id] && isStageComplete(player, stage)) {
+        });
+        if (isStageUnlocked(player, si) && !player.completedStages[stage.id] && stage.missions.length && isStageComplete(player, stage)) {
           player.completedStages[stage.id] = Date.now();
-          grant(player, stage.bonusXp, stage.bonusCoins, `Etapa concluída: ${stage.name}`, effects);
+          grant(player, stage.bonusXp, stage.bonusCoins, `Mundo concluído: ${stage.name}`, effects);
           effects.push({ type: 'stage:completed', stage });
           changed = true;
         }
@@ -125,7 +152,7 @@ export function createEngine({ store, bus }) {
     const state = store.getState();
     const id = playerId || state.currentPlayerId;
     const original = state.players[id];
-    if (!original) throw new Error(`Cliente não encontrado: ${id}`);
+    if (!original) throw new Error(`Central não encontrada: ${id}`);
     const player = structuredClone(original);
     const levelBefore = levelInfo(player.xp).level;
     const effects = [];
@@ -164,38 +191,32 @@ export function createEngine({ store, bus }) {
     });
   }
 
-  function createPlayer(name, avatar = '🙂') {
-    const player = {
-      id: newId('p'),
-      name,
-      avatar,
-      xp: 0,
-      coins: 0,
-      eventCounts: {},
-      completedMissions: {},
-      completedStages: {},
-      badges: {},
-      redemptions: [],
-      history: [],
-      createdAt: Date.now(),
-    };
+  const emptyProgress = () => ({
+    xp: 0,
+    coins: 0,
+    eventCounts: {},
+    completedMissions: {},
+    completedStages: {},
+    badges: {},
+    redemptions: [],
+    history: [],
+  });
+
+  function applyStartEvents(playerId) {
+    const player = store.getState().players[playerId];
+    (segmentOf(player).startEvents || []).forEach((ev) => track(ev, { playerId, silent: true }));
+  }
+
+  function createPlayer(name, avatar = '🚕', segment = cfg().segments[0].id) {
+    const player = { id: newId('p'), name, avatar, segment, ...emptyProgress(), createdAt: Date.now() };
     store.updatePlayer(player);
-    return player;
+    applyStartEvents(player.id);
+    return store.getState().players[player.id];
   }
 
   function resetPlayer(playerId) {
-    const player = store.getState().players[playerId];
-    store.updatePlayer({
-      ...player,
-      xp: 0,
-      coins: 0,
-      eventCounts: {},
-      completedMissions: {},
-      completedStages: {},
-      badges: {},
-      redemptions: [],
-      history: [],
-    });
+    store.updatePlayer({ ...store.getState().players[playerId], ...emptyProgress() });
+    applyStartEvents(playerId);
   }
 
   // Após mudar a configuração, reaplica as regras para todos (sem notificar).
@@ -210,7 +231,10 @@ export function createEngine({ store, bus }) {
     resetPlayer,
     reevaluateAll,
     levelInfo,
+    segmentOf,
+    stagesOf,
     isStageUnlocked,
+    isMissionUnlocked,
     missionProgress,
     journeySummary,
   };

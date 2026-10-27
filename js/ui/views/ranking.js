@@ -16,7 +16,7 @@ export function render({ store, engine }) {
           <span class="rank-avatar" aria-hidden="true">${esc(p.avatar)}</span>
           <div class="rank-info">
             <strong>${esc(p.name)}</strong>
-            <small>Nível ${lv.level} · ${esc(lv.title)} · ${summary.currentStage ? `etapa ${esc(summary.currentStage.name)}` : 'jornada completa'}</small>
+            <small>Nível ${lv.level} · ${esc(lv.title)} · ${summary.currentMission ? `fase: ${esc(summary.currentMission.title)}` : 'trilha completa'}</small>
           </div>
           <span class="rank-xp">${fmt(p.xp)} XP</span>
           <button class="btn btn-sm btn-ghost" data-action="viewAs" data-id="${esc(p.id)}">Ver jornada</button>
@@ -25,7 +25,7 @@ export function render({ store, engine }) {
     .join('');
 
   return `
-    <h2 class="section-title">Ranking de clientes</h2>
+    <h2 class="section-title">Ranking de centrais</h2>
     <ol class="card rank-list">${rows}</ol>`;
 }
 

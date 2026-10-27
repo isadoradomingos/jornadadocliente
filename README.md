@@ -8,7 +8,7 @@ Ferramenta web (HTML + CSS + JavaScript puro, sem build) que transforma a jornad
 npm run dev
 ```
 
-Abra http://localhost:5173. (Precisa de um servidor porque o código usa ES Modules; abrir o `index.html` direto não funciona.)
+Abra http://localhost:5173 (ou a porta em `PORT`). (Precisa de um servidor porque o código usa ES Modules; abrir o `index.html` direto não funciona.)
 
 ## Como funciona
 
