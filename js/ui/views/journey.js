@@ -1,39 +1,35 @@
 import { esc, fmt, activityList } from '../dom.js';
 
-// Mapa estilo Candy Crush: estrada sinuosa de baixo para cima, uma fase por
-// parada, mundos como faixas de cenário e um carro marcando a fase atual.
+// Mapa estilo Candy Crush: estrada sinuosa de cima para baixo (acompanha a
+// rolagem da página), uma fase por parada, mundos como faixas de cenário e
+// um carro marcando a fase atual.
 const W = 420; // largura de referência do mapa (o SVG escala com a tela)
 const STEP = 124; // distância vertical entre fases
 const BOSS_STEP = 150;
-const BANNER = 175; // espaço para a faixa do mundo
-const TEASER = 190; // "em breve" no topo
-const PAD = 40;
+const BANNER = 150; // espaço para a faixa do mundo
+const TEASER = 190; // "em breve" no fim da trilha
+const PAD = 56;
 const DECOR = ['🏢', '🌳', '🏬', '🚦', '🏠', '🌳', '🅿️', '⛽', '🏦', '🚏'];
 
 function buildLayout(stages) {
   const nodes = [];
   const worlds = [];
-  let y = PAD; // y medido de baixo para cima
+  let y = PAD; // y medido de cima para baixo
   let k = 0;
   stages.forEach((stage, si) => {
-    const from = y;
+    const top = y;
     y += BANNER;
     stage.missions.forEach((mission, mi) => {
       const x = mission.boss ? W / 2 : W / 2 + 118 * Math.sin(k * 1.05);
-      nodes.push({ stage, si, mission, mi, n: k + 1, x, y });
+      nodes.push({ stage, si, mission, mi, n: k + 1, x, top: y });
       y += mission.boss ? BOSS_STEP : STEP;
       k++;
     });
-    worlds.push({ stage, si, from, to: y });
+    worlds.push({ stage, si, top, bottom: y - STEP / 2 });
+    y -= STEP / 2;
   });
-  const teaser = { from: y, to: y + TEASER };
-  const height = teaser.to + PAD;
-  const top = (v) => height - v; // converte para coordenada de tela
-  nodes.forEach((n) => (n.top = top(n.y)));
-  worlds.forEach((w) => ((w.top = top(w.to)), (w.bottom = top(w.from))));
-  teaser.top = top(teaser.to);
-  teaser.bottom = top(teaser.from);
-  return { nodes, worlds, teaser, height };
+  const teaser = { top: y, bottom: y + TEASER };
+  return { nodes, worlds, teaser, height: teaser.bottom };
 }
 
 // Curva suave (Catmull-Rom → Bézier) passando por todos os pontos.
@@ -67,9 +63,9 @@ function renderMap({ engine }, player, segment) {
   const statuses = nodes.map((n) => nodeStatus(engine, player, n));
   const lastDone = statuses.lastIndexOf('done');
 
-  // Estrada: começa na largada (embaixo), passa por todas as fases e sobe até o "em breve".
-  const start = { x: W / 2, y: height - PAD + 10 };
-  const end = { x: W / 2, y: teaser.bottom - 40 };
+  // Estrada: começa na largada (no topo), passa por todas as fases e desce até o "em breve".
+  const start = { x: W / 2, y: PAD / 2 };
+  const end = { x: W / 2, y: teaser.top + 50 };
   const pts = [start, ...nodes.map((n) => ({ x: n.x, y: n.top })), end];
   const road = smoothPath(pts);
   const doneRoad = smoothPath(pts.slice(0, lastDone + 2 + (statuses[lastDone + 1] === 'current' ? 1 : 0)));
@@ -87,7 +83,7 @@ function renderMap({ engine }, player, segment) {
         <div class="world-band ${unlocked ? '' : 'is-locked'}" style="top:${pct(w.top, height)};height:${pct(w.bottom - w.top, height)};--c:${esc(w.stage.color)}">
           ${decor}
         </div>
-        <div class="world-banner ${unlocked ? '' : 'is-locked'}" style="top:${pct(w.bottom - 62, height)};--c:${esc(w.stage.color)}">
+        <div class="world-banner ${unlocked ? '' : 'is-locked'}" style="top:${pct(w.top + 62, height)};--c:${esc(w.stage.color)}">
           <span class="world-banner-icon">${unlocked ? esc(w.stage.icon) : '🔒'}</span>
           <span><small>Mundo ${w.si + 1}${done ? ' · concluído' : ''}</small>${esc(w.stage.name)}</span>
         </div>`;
@@ -129,7 +125,7 @@ function renderMap({ engine }, player, segment) {
         ${lastDone >= 0 ? `<path d="${doneRoad}" class="road-done"/>` : ''}
         <path d="${road}" class="road-lane"/>
       </svg>
-      <div class="start-flag" style="left:50%;top:${pct(height - PAD + 4, height)}">🏁 Largada</div>
+      <div class="start-flag" style="left:50%;top:${pct(PAD / 2, height)}">🏁 Largada</div>
       ${nodeEls}
       ${car}
     </div>`;
@@ -198,10 +194,12 @@ function locate(segment, missionId) {
   return null;
 }
 
-// Mantém o carro (fase atual) visível ao abrir a jornada ou avançar.
+// Mantém o carro (fase atual) visível: só rola se ele estiver fora da tela.
 export function afterRender() {
   const el = document.querySelector('.node-current') || [...document.querySelectorAll('.node-done')].pop();
-  el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  if (!el) return;
+  const { top, bottom } = el.getBoundingClientRect();
+  if (top < 80 || bottom > innerHeight - 40) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
 
 function missionModal(ctx, si, mi) {
