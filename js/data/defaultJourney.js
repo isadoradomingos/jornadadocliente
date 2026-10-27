@@ -28,8 +28,6 @@ export const DEFAULT_CONFIG = {
       icon: '🚕',
       vehicle: 'car', // desenhos em assets/car/ — o veículo que anda pelo mapa
       available: true,
-      // Eventos aplicados ao criar a central: ela já entra no jogo pelo painel.
-      startEvents: ['painel_acessado'],
       comingSoon: { city: 'Avenida Bandeirada', name: 'Primeiras corridas' },
       stages: [
         {
@@ -42,7 +40,7 @@ export const DEFAULT_CONFIG = {
           bonusXp: 150,
           bonusCoins: 30,
           missions: [
-            { id: 'mob_painel', title: 'Acessar o seu painel', short: 'Painel', icon: '🖥️', description: 'Entrar no painel da sua central Machine pela primeira vez.', trigger: 'painel_acessado', target: 1, xp: 20, coins: 5 },
+            { id: 'mob_painel', title: 'Acessar o seu painel', short: 'Painel', icon: '🖥️', description: 'Entrar no painel da sua central Machine pela primeira vez.', trigger: 'painel_acessado', target: 1, xp: 20, coins: 5, claimOnOpen: true },
             { id: 'mob_olivia', title: 'Abrir um chamado com a Olivia', short: 'Olivia', icon: '💬', description: 'Fale com a Olivia no chat do Suporte e abra seu primeiro chamado.', trigger: 'chamado_olivia_aberto', target: 1, xp: 40, coins: 10 },
             { id: 'mob_tarifas', title: 'Configurar tarifas e categorias', short: 'Tarifas', icon: '🏷️', description: 'Cadastre as categorias de veículo e as tarifas de cada uma.', trigger: 'tarifas_categorias_configuradas', target: 1, xp: 80, coins: 15 },
             { id: 'mob_taxas', title: 'Configurar as taxas da central', short: 'Taxas', icon: '💲', description: 'Defina as taxas que a central cobra sobre as corridas.', trigger: 'taxas_central_configuradas', target: 1, xp: 80, coins: 15 },
@@ -73,7 +71,6 @@ export const DEFAULT_CONFIG = {
       icon: '🛵',
       vehicle: 'moto', // entregador de moto, em assets/moto/
       available: false, // trilha ainda não definida
-      startEvents: ['painel_acessado'],
       stages: [],
     },
   ],
@@ -98,13 +95,13 @@ export const DEFAULT_CONFIG = {
 
 // Centrais de demonstração. `events` é reproduzido pelo motor ao criar o estado,
 // então o progresso delas é sempre coerente com a configuração.
-const WORLD1 = { chamado_olivia_aberto: 1, tarifas_categorias_configuradas: 1, taxas_central_configuradas: 1, despacho_configurado: 1, integracao_financeira_concluida: 1 };
+const WORLD1 = { painel_acessado: 1, chamado_olivia_aberto: 1, tarifas_categorias_configuradas: 1, taxas_central_configuradas: 1, despacho_configurado: 1, integracao_financeira_concluida: 1 };
 export const SEED_PLAYERS = [
   { name: 'Sua central (demo)', avatar: '🚕', segment: 'mobilidade', events: {} },
   { name: 'Rota Certa Mobilidade', avatar: '🚗', segment: 'mobilidade', events: { ...WORLD1, carteira_credito_configurada: 1 } },
-  { name: 'VaiJá Transportes', avatar: '🚙', segment: 'mobilidade', events: { chamado_olivia_aberto: 1, tarifas_categorias_configuradas: 1 } },
+  { name: 'VaiJá Transportes', avatar: '🚙', segment: 'mobilidade', events: { painel_acessado: 1, chamado_olivia_aberto: 1, tarifas_categorias_configuradas: 1 } },
   { name: 'Táxi Amigo', avatar: '🚖', segment: 'mobilidade', events: { ...WORLD1, carteira_credito_configurada: 1, cadastro_motorista_recebido: 3, cadastro_motorista_aprovado: 2 } },
-  { name: 'Leva Eu', avatar: '🛺', segment: 'mobilidade', events: { chamado_olivia_aberto: 1, tarifas_categorias_configuradas: 1, taxas_central_configuradas: 1, despacho_configurado: 1 } },
+  { name: 'Leva Eu', avatar: '🛺', segment: 'mobilidade', events: { painel_acessado: 1, chamado_olivia_aberto: 1, tarifas_categorias_configuradas: 1, taxas_central_configuradas: 1, despacho_configurado: 1 } },
 ];
 
 export function createInitialState() {

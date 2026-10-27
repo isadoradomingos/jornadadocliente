@@ -147,9 +147,12 @@ function renderMap({ engine }, player, segment) {
 
   // O carro para em cima do pontinho da fase atual (ou no "em breve", se a trilha acabou);
   // a posição exata e o trajeto são calculados em afterRender, sobre o caminho já desenhado.
-  const current = nodes[statuses.indexOf('current')];
+  // Ao abrir o mapa, ele sai da parada anterior — ou da largada, no topo, se ainda não concluiu nada.
+  const ci = statuses.indexOf('current');
+  const current = nodes[ci];
+  const prev = current ? nodes[ci - 1] : nodes[nodes.length - 1];
   const vehicle = segment.vehicle || 'car';
-  const car = `<div class="car" data-y="${current ? current.top : end.y}" data-vehicle="${esc(vehicle)}" aria-hidden="true"><img src="${vehicleSprite(vehicle, 4)}" alt=""></div>`;
+  const car = `<div class="car" data-y="${current ? current.top : end.y}" data-from-y="${prev ? prev.top : start.y}" data-vehicle="${esc(vehicle)}" aria-hidden="true"><img src="${vehicleSprite(vehicle, 4)}" alt=""></div>`;
 
   return `
     <div class="map" style="aspect-ratio:${W}/${height}">
@@ -275,8 +278,8 @@ function driveCar(player) {
 
   const to = lengthAtY(Number(car.dataset.y));
   // Mesmo cliente: sai de onde o veículo está (mesmo que tenha sido interrompido no meio).
-  // Ao abrir o mapa ou trocar de cliente: um trechinho de entrada.
-  const from = lastCar?.playerId === player.id ? lastCar.len : Math.max(0, to - 140);
+  // Ao abrir o mapa ou trocar de cliente: sai da parada anterior (ou da largada).
+  const from = lastCar?.playerId === player.id ? lastCar.len : lengthAtY(Number(car.dataset.fromY));
 
   if (from >= to || matchMedia('(prefers-reduced-motion: reduce)').matches) {
     place(to);
@@ -312,14 +315,22 @@ function missionModal(ctx, si, mi) {
   const player = store.getCurrentPlayer();
   const stage = engine.segmentOf(player).stages[si];
   const mission = stage.missions[mi];
-  const doneAt = player.completedMissions[mission.id];
   const unlocked = engine.isMissionUnlocked(player, si, mi);
+  // Fase de boas-vindas (claimOnOpen): o cliente já cumpriu só de estar no painel, então
+  // tocar nela já conclui — uma conquista rápida logo no início. O evento é disparado
+  // depois que a janela abre, para o veículo esperar ela fechar antes de seguir viagem.
+  const claim = mission.claimOnOpen && unlocked && !player.completedMissions[mission.id];
+  const doneAt = claim ? Date.now() : player.completedMissions[mission.id];
   const prev = mi > 0 ? stage.missions[mi - 1] : null;
   const target = mission.target || 1;
   const progress = engine.missionProgress(player, mission);
 
   let footer;
-  if (doneAt) {
+  if (claim) {
+    footer = `
+      <p class="status status-done">🎉 Fase concluída! Você ganhou +${fmt(mission.xp)} XP${mission.coins ? ` e +${fmt(mission.coins)} 🪙` : ''}.</p>
+      <button class="btn btn-primary btn-block" data-action="closeModal">Seguir viagem</button>`;
+  } else if (doneAt) {
     footer = `<p class="status status-done">✓ Concluída em ${new Date(doneAt).toLocaleDateString('pt-BR')}</p>`;
   } else if (unlocked) {
     footer = `
@@ -344,6 +355,7 @@ function missionModal(ctx, si, mi) {
     </div>`;
   document.body.append(overlay);
   overlay.querySelector('.btn, .modal-close').focus();
+  if (claim) engine.track(mission.trigger);
 }
 
 export const actions = {
