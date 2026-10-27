@@ -6,32 +6,10 @@ import { esc, fmt, activityList } from '../dom.js';
 const W = 420; // largura de referência do mapa (o SVG escala com a tela)
 const STEP = 124; // distância vertical entre fases
 const BOSS_STEP = 150;
-const BANNER = 150; // espaço para a placa da cidade
+const BANNER = 130; // espaço para a placa da cidade
 const TEASER = 190; // "em breve" no fim da trilha
-const GARAGE = { top: 14, width: 168, height: 116 }; // largada: a estrada sai do portão
-const PAD = GARAGE.top + GARAGE.height + 22; // início da primeira cidade
+const PAD = 0; // o mapa começa direto na primeira cidade
 const DECOR = ['🏢', '🌳', '🏬', '🚦', '🏠', '🌳', '🅿️', '⛽', '🏦', '🚏'];
-
-// Garagem da central (viewBox 160×110). O portão fica no centro e a estrada
-// do mapa começa exatamente na soleira dele.
-const GARAGE_SVG = `
-  <svg viewBox="0 0 160 110" aria-hidden="true">
-    <rect x="12" y="38" width="136" height="72" rx="4" fill="#ffffff" stroke="#d4d4d4" stroke-width="2"/>
-    <path d="M4 44 L80 8 L156 44 Z" fill="#307fff"/>
-    <path d="M4 44 L80 8 L156 44 L148 48 L80 16 L12 48 Z" fill="#1256d8"/>
-    <text x="80" y="38" text-anchor="middle" font-family="Source Sans 3, Arial, sans-serif" font-size="11" font-weight="900" fill="#fff" letter-spacing="1.5">GARAGEM</text>
-    <rect x="22" y="58" width="18" height="16" rx="2" fill="#e9f2ff" stroke="#b1cfff" stroke-width="2"/>
-    <rect x="120" y="58" width="18" height="16" rx="2" fill="#e9f2ff" stroke="#b1cfff" stroke-width="2"/>
-    <rect x="46" y="52" width="68" height="58" fill="#4a505c"/>
-    <rect x="46" y="52" width="68" height="16" fill="#e4e4e4"/>
-    <path d="M46 56 H114 M46 60 H114 M46 64 H114" stroke="#c4c4c4" stroke-width="1.5"/>
-    <rect x="42" y="50" width="76" height="4" rx="2" fill="#353535"/>
-    <path d="M42 54 V110 M118 54 V110" stroke="#ffce00" stroke-width="4" stroke-dasharray="6 6"/>
-    <path d="M56 92 L48 110 H70 L66 92 Z M104 92 L112 110 H90 L94 92 Z" fill="#ffce00" opacity="0.28"/>
-    <rect x="58" y="80" width="44" height="12" rx="4" fill="#262626"/>
-    <circle cx="64" cy="88" r="4" fill="#ffce00"/>
-    <circle cx="96" cy="88" r="4" fill="#ffce00"/>
-  </svg>`;
 
 function buildLayout(stages) {
   const nodes = [];
@@ -86,7 +64,7 @@ function renderMap({ engine }, player, segment) {
   const lastDone = statuses.lastIndexOf('done');
 
   // Estrada: começa na largada (no topo), passa por todas as fases e desce até o "em breve".
-  const start = { x: W / 2, y: GARAGE.top + GARAGE.height - 12 }; // soleira do portão
+  const start = { x: W / 2, y: -20 }; // a estrada entra pelo topo do mapa
   const end = { x: W / 2, y: teaser.top + 50 };
   const pts = [start, ...nodes.map((n) => ({ x: n.x, y: n.top })), end];
   const road = smoothPath(pts);
@@ -105,7 +83,7 @@ function renderMap({ engine }, player, segment) {
         <div class="world-band ${unlocked ? '' : 'is-locked'}" style="top:${pct(w.top, height)};height:${pct(w.bottom - w.top, height)};--c:${esc(w.stage.color)}">
           ${decor}
         </div>
-        <div class="world-banner ${unlocked ? '' : 'is-locked'}" style="top:${pct(w.top + 62, height)};--c:${esc(w.stage.color)}">
+        <div class="world-banner ${unlocked ? '' : 'is-locked'}" style="top:${pct(w.top + 48, height)};--c:${esc(w.stage.color)}">
           <span class="world-banner-icon">${unlocked ? esc(w.stage.icon) : '🔒'}</span>
           <span><small>Cidade ${w.si + 1} · ${done ? 'concluída' : esc(w.stage.name)}</small>${esc(w.stage.city || w.stage.name)}</span>
         </div>`;
@@ -147,7 +125,6 @@ function renderMap({ engine }, player, segment) {
         ${lastDone >= 0 ? `<path d="${doneRoad}" class="road-done"/>` : ''}
         <path d="${road}" class="road-lane"/>
       </svg>
-      <div class="garage" style="top:${pct(GARAGE.top, height)};width:${pct(GARAGE.width, W)}" title="Largada: a garagem da sua central">${GARAGE_SVG}</div>
       ${nodeEls}
       ${car}
     </div>`;

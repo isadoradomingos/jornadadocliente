@@ -149,6 +149,7 @@ input:not([type]), input[type='text'], input[type='number'], select, textarea {
   background: linear-gradient(180deg, color-mix(in srgb, var(--c) 22%, #fff), color-mix(in srgb, var(--c) 10%, #fff));
   border-top: 4px dashed color-mix(in srgb, var(--c) 35%, transparent);
 }
+.world-band:first-child { border-top: 0; }
 .world-band.is-locked { filter: grayscale(0.85); opacity: 0.85; }
 .decor { position: absolute; transform: translate(-50%, -50%); font-size: clamp(1.3rem, 5vw, 1.9rem); opacity: 0.9; pointer-events: none; }
 
@@ -179,10 +180,6 @@ input:not([type]), input[type='text'], input[type='number'], select, textarea {
 .road-asphalt { stroke: #4a505c; stroke-width: 30; }
 .road-done { stroke: var(--brand); stroke-width: 30; opacity: 0.92; }
 .road-lane { stroke: var(--logo-yellow); stroke-width: 3; stroke-dasharray: 12 12; }
-
-/* Largada: a estrada sai do portão da garagem */
-.garage { position: absolute; left: 50%; transform: translateX(-50%); z-index: 2; filter: drop-shadow(0 6px 8px rgb(38 38 38 / 0.18)); }
-.garage svg { display: block; width: 100%; height: auto; }
 
 .node {
   position: absolute; z-index: 4; transform: translate(-50%, -50%);
